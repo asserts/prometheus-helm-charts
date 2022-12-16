@@ -704,7 +704,10 @@ serverFiles:
             regex: (.+)
             target_label: __metrics_path__
             replacement: /api/v1/nodes/$1/proxy/metrics
-
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: node
+            replacement: $1
 
       - job_name: 'kubernetes-nodes-cadvisor'
 
@@ -746,6 +749,10 @@ serverFiles:
             regex: (.+)
             target_label: __metrics_path__
             replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: node
+            replacement: $1
 
       # Scrape config for service endpoints.
       #
@@ -801,6 +808,10 @@ serverFiles:
           - source_labels: [__meta_kubernetes_pod_node_name]
             action: replace
             target_label: node
+          - source_labels: [__meta_kubernetes_pod_name]
+            regex: (.+)
+            target_label: pod
+            replacement: $1
 
       # Scrape config for slow service endpoints; same as above, but with a larger
       # timeout and a larger interval
@@ -856,6 +867,10 @@ serverFiles:
           - source_labels: [__meta_kubernetes_pod_node_name]
             action: replace
             target_label: node
+          - source_labels: [__meta_kubernetes_pod_name]
+            regex: (.+)
+            target_label: pod
+            replacement: $1
 
       - job_name: 'prometheus-pushgateway'
         honor_labels: true
@@ -952,6 +967,18 @@ serverFiles:
           - source_labels: [__meta_kubernetes_pod_phase]
             regex: Pending|Succeeded|Failed|Completed
             action: drop
+          - source_labels: [__meta_kubernetes_pod_controller_kind]
+            regex: ReplicaSet.*|Job.*
+            target_label: __tmp_controller
+            replacement: exists
+          - source_labels: [__meta_kubernetes_pod_controller_name, __tmp_controller]
+            regex: (.*)-(.+);exists
+            target_label: service
+            replacement: $1
+          - source_labels: [__meta_kubernetes_pod_controller_name, __tmp_controller]
+            regex: (.+);
+            target_label: service
+            replacement: $1
 
       # Example Scrape config for pods which should be scraped slower. An useful example
       # would be stackriver-exporter which queries an API on every scrape of the pod
@@ -1004,6 +1031,18 @@ serverFiles:
           - source_labels: [__meta_kubernetes_pod_phase]
             regex: Pending|Succeeded|Failed|Completed
             action: drop
+          - source_labels: [__meta_kubernetes_pod_controller_kind]
+            regex: ReplicaSet.*|Job.*
+            target_label: __tmp_controller
+            replacement: exists
+          - source_labels: [__meta_kubernetes_pod_controller_name, __tmp_controller]
+            regex: (.*)-(.+);exists
+            target_label: service
+            replacement: $1
+          - source_labels: [__meta_kubernetes_pod_controller_name, __tmp_controller]
+            regex: (.+);
+            target_label: service
+            replacement: $1
 
 # adds additional scrape configs to prometheus.yml
 # must be a string so you have to add a | after extraScrapeConfigs:
